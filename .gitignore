@@ -1,0 +1,21 @@
+# Foundry
+/out/
+/cache/
+/broadcast/
+
+# Node / circom 빌드 산출물 (검증키·verifier·fixture 는 커밋한다)
+node_modules/
+circuits/build/
+
+# 환경 변수
+.env
+.env.*
+!.env.example
+
+# 링크드인 초안
+linkedin_*.txt
+linkedin_*.md
+*.draft.md
+
+# OS
+.DS_Store
