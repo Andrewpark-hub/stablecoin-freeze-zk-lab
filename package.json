@@ -1,0 +1,24 @@
+{
+  "name": "stablecoin-freeze-zk-lab",
+  "version": "1.0.0",
+  "description": "Stablecoin freeze procedures in code: commit-reveal and Groth16 reason proofs (learning lab)",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "build": "./scripts/build.sh",
+    "test": "forge test -vv"
+  },
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "circom2": "^0.2.23",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "js-sha3": "^0.13.0",
+    "snarkjs": "^0.7.6"
+  },
+  "private": true
+}
