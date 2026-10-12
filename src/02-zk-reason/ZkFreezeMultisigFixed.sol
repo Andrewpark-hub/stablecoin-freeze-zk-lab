@@ -26,6 +26,8 @@ interface IReasonVerifier {
 ///      - 증명은 "목록에 있다" 까지만 말한다. 레지스트라가 목록에 무엇을 넣느냐는 여전히 신뢰다.
 ///      - 동결은 여전히 즉시 집행되고, 무고한 이용자에게 통지·이의제기 기간이 없다.
 ///      - 사유 하나로 몇 개의 주소든 동결할 수 있다 (nullifier 없음).
+///      - 증명이 chain id·이 컨트랙트 주소·제안 id 에 묶여 있지 않다. 다른 배포본에서의 재사용은
+///        이 컨트랙트가 자기 commitment·reasonRoot 로 검증하는 것에만 기대고 있다.
 contract ZkFreezeMultisigFixed {
     uint256 public constant THRESHOLD = 2;
 

@@ -103,6 +103,7 @@ sequenceDiagram
 - **증명은 "목록에 있다" 까지만 말한다.** 목록에 무엇을 넣는지는 여전히 레지스트라에 대한 신뢰다. 신뢰를 없앤 게 아니라, 서명자에서 레지스트라로 **옮긴** 것에 가깝다. K-Gold 에서 오라클을 다루며 했던 말을 다시 하게 됐다.
 - **무고한 이용자에게 통지·이의제기 기간이 없다.** 동결은 여전히 즉시 집행된다. 지난 글에서 "유예 기간은 무고한 이용자에게도 빠져나가려는 쪽에게도 똑같이 주어진다" 고 했던 균형 문제는 이 저장소에서 풀지 못했다.
 - **사유 하나로 몇 개의 주소든 동결할 수 있다.** 사유별 사용 횟수를 제한하려면 nullifier 가 필요해 보인다.
+- **증명이 체인·컨트랙트에 묶여 있지 않다.** 공개 입력은 `root, commitment, target` 셋뿐이라 증명 자체는 자기가 어느 체인의 어느 컨트랙트용인지 모른다. 지금 다른 배포본에서의 재사용을 막는 것은 증명이 아니라 컨트랙트다 — `execute` 가 자기 제안의 `commitment` 와 자기 `reasonRoot` 로 검증하고, 승인이 온체인 `approve()` 라서 다른 배포본도 같은 commitment 를 2-of-3 로 승인해야 한다. 같은 서명자·같은 사유 목록을 두 체인에 배포하면 A 용 증명이 B 에서 그대로 통과하고, 제안 id 에도 묶여 있지 않아 같은 commitment 를 다시 제안하면 옛 증명이 또 통과한다. 서명에서 nonce 만 넣고 EIP-712 도메인 구분자를 빠뜨린 것과 같은 모양이다. 링크드인 댓글로 지적받았다.
 - **비용.** Groth16 검증 한 번에 약 **20만 가스** (`verifyProof` 195,613 ~ 202,220). 커밋-리빌 `execute` (약 8만 가스) 보다 3배 이상 비싸다. 동결이 자주 일어나는 일은 아니라 감당할 수 있다고 보지만, 판단은 보류했다.
 
 ---
@@ -202,7 +203,7 @@ docs/
 - 지난 글의 결론은 "절차는 코드 바깥에만 있고, 코드 안에는 권한만 있다" 였다. 이번에 절차 두 개(대상 비공개, 사유 증명)를 코드 안으로 옮겨 보니, **절차를 넣을 때마다 그 절차를 누가 제출하고 무엇에 묶이는지** 라는 새 질문이 생겼다. 02 의 구멍은 ZK 를 몰라서가 아니라, 증명이 덮는 범위를 정하지 않아서 생겼다.
 - 해시는 입력을 숨기지 않는다. 커밋이 무언가를 숨기려면 추측할 수 없는 값이 함께 들어가야 한다 — 이건 회로 안의 Poseidon 커밋에도 똑같이 적용돼서 `salt` 를 비공개 입력으로 넣었다.
 - 지난 저장소의 세 질문 중 **어디에 저장하느냐** 가 이번에도 핵심이었다. 사유를 평문으로 저장하면 프라이버시가, 저장하지 않으면 검증이 깨진다. **봉인해서 저장하고, 필요할 때 열어 보인다** 가 지금의 답이다.
-- 다음으로는 root 히스토리(최근 N개 root 허용)와 사유별 nullifier 를 넣어 위의 한계 두 개를 고쳐볼 계획이다. 무고한 이용자의 통지·이의제기 기간은 논문에서 다루려는 균형 문제라 따로 정리하려 한다.
+- 다음으로는 root 히스토리(최근 N개 root 허용), 사유별 nullifier, 그리고 chain id 와 검증 컨트랙트 주소·제안 id 를 공개 입력(또는 커밋)에 넣는 도메인 바인딩으로 위의 한계 세 개를 고쳐볼 계획이다. 무고한 이용자의 통지·이의제기 기간은 논문에서 다루려는 균형 문제라 따로 정리하려 한다.
 
 ---
 
@@ -318,6 +319,7 @@ After a freeze, `(commitment, root)` is stored next to the target address. Anyon
 - **The proof only says "it's in the list."** What goes into the list still depends on trusting the registrar. Trust was not removed; it **moved** from the signers to the registrar — the same thing I ended up saying about oracles in K-Gold.
 - **Innocent users get no notice or challenge period.** Freezes still take effect immediately. The balance problem from the previous post — a grace period is given equally to innocent users and to those trying to escape — is not solved here.
 - **One reason can freeze any number of addresses.** Limiting uses per reason looks like it needs a nullifier.
+- **The proof is not bound to a chain or a contract.** The public inputs are only `root, commitment, target`, so the proof itself does not know which chain or which contract it belongs to. What stops a cross-deployment replay today is the contract, not the proof: `execute` verifies against its own proposal's `commitment` and its own `reasonRoot`, and approvals are on-chain `approve()` calls, so another deployment would need its own 2-of-3 approval of the same commitment. Deploy the same signer set and reason list on two chains and a proof made for chain A verifies on chain B as-is; it is not bound to the proposal id either, so re-proposing the same commitment accepts the old proof again. It is the same shape as a signature with a nonce but no EIP-712 domain separator. Pointed out in a LinkedIn comment.
 - **Cost.** One Groth16 verification costs about **200k gas** (`verifyProof` 195,613 – 202,220), more than 3x a commit-reveal `execute` (~80k). Freezes are rare, so it seems affordable, but I am holding off on a verdict.
 
 ---
@@ -417,7 +419,7 @@ docs/
 - My previous post concluded that "procedure lives only outside the code; inside the code there is only authority." Moving two procedures (hiding the target, proving the reason) into the code raised a new question each time: **who submits this procedure, and what is it bound to?** The hole in 02 did not come from not knowing ZK; it came from not deciding what the proof should cover.
 - A hash does not hide its input. A commitment only hides something if it includes a value no one can guess — the same applies to the Poseidon commitment inside the circuit, which is why `salt` is a private input.
 - Of the three questions from my SEC repository, **where you store it** was again the core. Store the reason in plaintext and privacy breaks; don't store it and verification breaks. **Store it sealed, and open it when needed** is my answer for now.
-- Next I plan to fix two of the limits above with a root history (accepting the last N roots) and per-reason nullifiers. The notice and challenge period for innocent users is the balance problem my paper is about, so I will write that up separately.
+- Next I plan to fix three of the limits above with a root history (accepting the last N roots), per-reason nullifiers, and domain binding — putting the chain id, the verifying contract address and the proposal id into the public inputs (or the commitment). The notice and challenge period for innocent users is the balance problem my paper is about, so I will write that up separately.
 
 ---
 
